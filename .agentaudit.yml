@@ -1,0 +1,14 @@
+version: 1
+policies:
+  - name: "No deletions"
+    rule: "never run any bash command containing rm"
+    action: block
+
+  - name: "Alert on outbound HTTP"
+    rule: "alert when tool is web_fetch or http_request"
+    action: alert
+
+  - name: "Protect production"
+    tool: write_file
+    rule: "block any file write outside the /tmp directory"
+    action: block

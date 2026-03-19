@@ -1,0 +1,21 @@
+{
+  "name": "agentaudit",
+  "version": "0.1.0",
+  "description": "Trust and observability layer for Claude Code agent sessions",
+  "type": "module",
+  "bin": {
+    "agentaudit": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node --experimental-sqlite src/index.js start"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "^12.8.0",
+    "commander": "^12.0.0",
+    "express": "^5.2.1",
+    "js-yaml": "^4.1.0",
+    "open": "^11.0.0",
+    "uuid": "^9.0.0"
+  }
+}

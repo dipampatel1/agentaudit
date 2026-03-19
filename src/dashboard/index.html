@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentAudit Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f0f0f;
+    --surface:   #1a1a1a;
+    --border:    #2a2a2a;
+    --text:      #e0e0e0;
+    --muted:     #666;
+    --green:     #22c55e;
+    --yellow:    #eab308;
+    --red:       #ef4444;
+    --blue:      #3b82f6;
+    --cyan:      #06b6d4;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .logo span.bracket { color: var(--cyan); }
+  .logo span.name    { color: var(--text); }
+  .logo span.tag     { color: var(--green); font-size: 11px; margin-left: 8px; }
+
+  .header-right { text-align: right; }
+  .clock        { color: var(--cyan); font-size: 14px; }
+  .status-dot   { display: inline-block; width: 8px; height: 8px;
+                  border-radius: 50%; background: var(--green);
+                  animation: pulse 2s infinite; margin-right: 6px; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* ── Main layout ─────────────────────────────────────────────────────── */
+  main { padding: 20px 24px; max-width: 1400px; }
+
+  /* ── Stats bar ───────────────────────────────────────────────────────── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+  }
+  .stat-card .label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .stat-card .value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .stat-card.actions   .value { color: var(--blue);   }
+  .stat-card.violations .value { color: var(--yellow); }
+  .stat-card.blocked   .value { color: var(--red);    }
+  .stat-card.alerted   .value { color: var(--yellow); }
+
+  /* ── Section titles ──────────────────────────────────────────────────── */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody td {
+    padding: 7px 10px;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+  tbody td.wrap { white-space: pre-wrap; word-break: break-all; max-width: 320px; }
+
+  /* Row risk colours */
+  tr.ok       td:first-child { border-left: 3px solid var(--green);  }
+  tr.alert    td:first-child { border-left: 3px solid var(--yellow); }
+  tr.blocked  td:first-child { border-left: 3px solid var(--red);    }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .badge.ok      { background: rgba(34,197,94,0.15);  color: var(--green);  }
+  .badge.alert   { background: rgba(234,179,8,0.15);  color: var(--yellow); }
+  .badge.blocked { background: rgba(239,68,68,0.15);  color: var(--red);    }
+  .badge.alerted { background: rgba(234,179,8,0.15);  color: var(--yellow); }
+
+  /* ── Empty state ─────────────────────────────────────────────────────── */
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 32px;
+    font-size: 12px;
+  }
+
+  /* ── Session badge ───────────────────────────────────────────────────── */
+  .session-id {
+    color: var(--muted);
+    font-size: 11px;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <span class="bracket">[</span><span class="name">AgentAudit</span><span class="bracket">]</span>
+    <span class="tag">// firewall for AI agents</span>
+  </div>
+  <div class="header-right">
+    <span class="status-dot"></span>
+    <span class="clock" id="clock">--:--:--</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Stats bar ─────────────────────────────────────────────────────── -->
+  <div class="stats-bar">
+    <div class="stat-card actions">
+      <div class="label">Total Actions</div>
+      <div class="value" id="stat-actions">—</div>
+    </div>
+    <div class="stat-card violations">
+      <div class="label">Total Violations</div>
+      <div class="value" id="stat-violations">—</div>
+    </div>
+    <div class="stat-card blocked">
+      <div class="label">Blocked</div>
+      <div class="value" id="stat-blocked">—</div>
+    </div>
+    <div class="stat-card alerted">
+      <div class="label">Alerted</div>
+      <div class="value" id="stat-alerted">—</div>
+    </div>
+  </div>
+
+  <!-- ── Actions feed ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Actions Feed &nbsp;(last 100)</div>
+    <div class="table-wrap">
+      <table id="actions-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Session</th>
+            <th>Tool</th>
+            <th>Risk Level</th>
+            <th>Parameters</th>
+          </tr>
+        </thead>
+        <tbody id="actions-body">
+          <tr><td colspan="5" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Violations log ────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Violations Log</div>
+    <div class="table-wrap">
+      <table id="violations-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Policy Name</th>
+            <th>Tool</th>
+            <th>Action Taken</th>
+          </tr>
+        </thead>
+        <tbody id="violations-body">
+          <tr><td colspan="4" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── Clock ──────────────────────────────────────────────────────────────
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-US', { hour12: false });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', { hour12: false }) +
+      ' ' + d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+  }
+
+  function shortSession(id) {
+    if (!id) return '—';
+    return id.slice(0, 8) + '…';
+  }
+
+  function fmtParams(raw) {
+    try {
+      const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return JSON.stringify(obj);
+    } catch {
+      return String(raw);
+    }
+  }
+
+  function riskClass(level) {
+    if (!level) return '';
+    const l = level.toLowerCase();
+    if (l === 'blocked') return 'blocked';
+    if (l === 'alert' || l === 'alerted') return 'alert';
+    return 'ok';
+  }
+
+  // ── Fetch & render stats ───────────────────────────────────────────────
+  async function refreshStats() {
+    try {
+      const s = await fetch('/api/stats').then(r => r.json());
+      document.getElementById('stat-actions').textContent    = s.total_actions    ?? 0;
+      document.getElementById('stat-violations').textContent = s.total_violations ?? 0;
+      document.getElementById('stat-blocked').textContent    = s.total_blocked    ?? 0;
+      document.getElementById('stat-alerted').textContent    = s.total_alerted    ?? 0;
+    } catch (e) { console.error('stats:', e); }
+  }
+
+  // ── Fetch & render actions ─────────────────────────────────────────────
+  async function refreshActions() {
+    try {
+      const rows = await fetch('/api/actions').then(r => r.json());
+      const tbody = document.getElementById('actions-body');
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty">No actions logged yet. Run <code>agentaudit start</code> and make some tool calls.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const rc = riskClass(r.risk_level);
+        return `<tr class="${rc}">
+          <td>${fmtTime(r.timestamp)}</td>
+          <td><span class="session-id">${shortSession(r.session_id)}</span></td>
+          <td>${escHtml(r.tool_name)}</td>
+          <td><span class="badge ${rc}">${escHtml(r.risk_level ?? 'unknown')}</span></td>
+          <td class="wrap">${escHtml(fmtParams(r.parameters))}</td>
+        </tr>`;
+      }).join('');
+    } catch (e) { console.error('actions:', e); }
+  }
+
+  // ── Fetch & render violations ──────────────────────────────────────────
+  async function refreshViolations() {
+    try {
+      const rows = await fetch('/api/violations').then(r => r.json());
+      const tbody = document.getElementById('violations-body');
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No violations recorded yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const rc = r.action_taken === 'blocked' ? 'blocked' : 'alerted';
+        return `<tr class="${rc === 'blocked' ? 'blocked' : 'alert'}">
+          <td>${fmtTime(r.timestamp)}</td>
+          <td>${escHtml(r.policy_name)}</td>
+          <td>${escHtml(r.tool_name)}</td>
+          <td><span class="badge ${rc}">${escHtml(r.action_taken)}</span></td>
+        </tr>`;
+      }).join('');
+    } catch (e) { console.error('violations:', e); }
+  }
+
+  // ── XSS guard ──────────────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Refresh all ────────────────────────────────────────────────────────
+  function refreshAll() {
+    refreshStats();
+    refreshActions();
+    refreshViolations();
+  }
+
+  refreshAll();
+  setInterval(refreshAll, 5000);
+</script>
+</body>
+</html>
