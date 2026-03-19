@@ -2,9 +2,12 @@
 
 **The open source firewall for AI agents.**
 
-AgentAudit sits between Claude Code and your system, intercepting every
-tool call your agent makes — logging it, evaluating it against your
-policies, and blocking anything dangerous before it happens.
+AgentAudit sits between your AI agents and your system —
+intercepting every tool call, enforcing plain-English policies,
+and blocking dangerous actions before they happen.
+
+Works with any MCP-compatible agent runtime including Claude Code,
+OpenClaw, LangChain, and more.
 
 Think of it as a flight recorder + firewall for the agentic era.
 
