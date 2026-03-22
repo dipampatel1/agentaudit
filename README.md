@@ -15,59 +15,48 @@ Think of it as a flight recorder + firewall for the agentic era.
 
 ---
 
-## Why AgentAudit?
-
-AI agents are powerful. They can read files, run commands, fetch URLs,
-and write to your system — autonomously. That's incredible. It's also
-terrifying without visibility.
-
-AgentAudit answers the question every developer and CTO asks:
-
-> "What exactly did the agent do, and can we stop it from doing
-> something catastrophic?"
-
----
-
-## Features
-
-- **Action Interceptor** — captures every MCP tool call Claude Code makes
-- **Audit Log** — writes every action to a local SQLite database
-- **Policy Engine** — define rules in plain English, block or alert on violations
-- **Live Dashboard** — real-time view of actions, violations, and sessions
+## How It Works
+```mermaid
+flowchart LR
+    A[Your AI Agent\nClaude Code / OpenClaw\nLangChain] -->|tool call| B[AgentAudit\nMCP Server]
+    B -->|evaluate| C{Policy\nEngine}
+    C -->|block| D[❌ Blocked\nAction]
+    C -->|alert| E[⚠️ Alerted\nAction]
+    C -->|ok| F[✅ Executed\nAction]
+    B -->|log| G[(SQLite\nAudit Log)]
+    G --> H[Live Dashboard\nlocalhost:4321]
+```
 
 ---
 
-## Quick Start
+## Quickstart
 
-### 1. Install
+**Install in 60 seconds:**
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/agentaudit.git
+# Step 1 — Clone and install
+git clone https://github.com/dipampatel1/agentaudit.git
 cd agentaudit
 npm install
-```
 
-### 2. Register with Claude Code
-```bash
-claude mcp add agentaudit -s user -- node --experimental-sqlite PATH_TO/agentaudit/src/index.js start
-```
+# Step 2 — Register with your agent runtime
+claude mcp add agentaudit -s user -- node --experimental-sqlite PATH/agentaudit/src/index.js start
 
-### 3. Start AgentAudit
-```bash
+# Step 3 — Start AgentAudit
 node --experimental-sqlite src/index.js start
-```
 
-### 4. Open the dashboard
-```bash
+# Step 4 — Open dashboard
 node --experimental-sqlite src/index.js dashboard
 ```
 
-Visit http://localhost:4321
+Visit http://localhost:4321 — you're live.
 
 ---
 
 ## Define Your Policies
 
 Edit `.agentaudit.yml` in plain English:
+
 ```yaml
 version: 1
 policies:
@@ -86,18 +75,26 @@ policies:
 
 ---
 
-## How It Works
-```
-Claude Code Session
-       ↓
-AgentAudit MCP Server (intercepts every tool call)
-       ↓
-Policy Engine (evaluates against .agentaudit.yml)
-       ↓
-Action Executed or Blocked
-       ↓
-SQLite Audit Log + Live Dashboard
-```
+## Features
+
+- **Action Interceptor** — captures every MCP tool call your agent makes
+- **Audit Log** — writes every action to a local SQLite database
+- **Policy Engine** — define rules in plain English, block or alert on violations
+- **Live Dashboard** — real-time view of actions, violations, and sessions
+- **Runtime Agnostic** — works with Claude Code, OpenClaw, LangChain, any MCP runtime
+
+---
+
+## Why AgentAudit?
+
+AI agents can read files, run commands, fetch URLs, and write to
+your system autonomously. That's powerful. It's also dangerous
+without visibility.
+
+AgentAudit answers the question every developer and CTO asks:
+
+> "What exactly did the agent do, and can we stop it from doing
+> something catastrophic?"
 
 ---
 
@@ -106,7 +103,7 @@ SQLite Audit Log + Live Dashboard
 - [x] MCP tool call interceptor
 - [x] SQLite audit log
 - [x] Plain-English policy engine
-- [x] Local dashboard
+- [x] Live local dashboard
 - [ ] Cloud sync + hosted dashboard
 - [ ] Multi-agent chain monitoring
 - [ ] Plugin/skill marketplace scanner
